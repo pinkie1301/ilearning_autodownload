@@ -9,7 +9,63 @@ import logging
 import configparser
 
 class CourseBot:
-    def download(i, Account, Password, Classname, Chapter):
+    def merge_pdfs(self, downloaded_files, chapter_dir):
+        merge_count = 1  # 用來生成不同的合併檔名
+        while True:
+            print("\n下載的 PDF 文件清單:")
+            for idx, file in enumerate(downloaded_files, start=1):
+                print(f"{idx}: {os.path.basename(file)}")
+
+            user_input = input("\n請輸入要合併的文件範圍 (eg. 1-3：合併1到3份文件，2-4,6-8：合併2到4及6到8兩段文件): ").strip()
+            merge_indices = []
+
+            if user_input:
+                ranges = user_input.split(',')
+                for r in ranges:
+                    r = r.strip()
+                    if '-' in r:
+                        parts = r.split('-')
+                        if len(parts) == 2:
+                            try:
+                                start = int(parts[0])
+                                end = int(parts[1])
+                                if start > end:
+                                    start, end = end, start  # 自動調整順序
+                                for i in range(start, end+1):
+                                    if 1 <= i <= len(downloaded_files):
+                                        merge_indices.append(i-1)  # 轉換成 0-based index
+                                    else:
+                                        print(f"文件編號 {i} 超出範圍")
+                            except ValueError:
+                                print(f"無效的範圍: {r}")
+                    else:
+                        try:
+                            num = int(r)
+                            if 1 <= num <= len(downloaded_files):
+                                merge_indices.append(num-1)
+                            else:
+                                print(f"文件編號 {num} 超出範圍")
+                        except ValueError:
+                            print(f"無效的輸入: {r}")
+
+            merge_indices = sorted(set(merge_indices))
+            if merge_indices:
+                merger = PdfMerger()
+                for idx in merge_indices:
+                    merger.append(downloaded_files[idx])
+                merged_file_path = os.path.join(chapter_dir, f"combined_{merge_count}.pdf")
+                merger.write(merged_file_path)
+                merger.close()
+                print(f"\nPDF 文件已合併: {merged_file_path}")
+                merge_count += 1
+            else:
+                print("\n沒有選擇到任何文件，合併取消。")
+
+            cont = input("\n是否繼續合併下一份文件？(Y/N): ").strip().upper()
+            if cont != 'Y':
+                break
+
+    def download(self, Account, Password, Classname, Chapter):
         # 設定下載目錄(預設為當前資料夾)
         dir = os.getcwd()
         os.makedirs(dir, exist_ok=True)
@@ -82,62 +138,9 @@ class CourseBot:
 
             # 如果有下載到 PDF 文件，進行合併操作
             if downloaded_files:
-                merge_count = 1  # 用來生成不同的合併檔名
-                while True:
-                    print("\n下載的 PDF 文件清單:")
-                    for idx, file in enumerate(downloaded_files, start=1):
-                        print(f"{idx}: {os.path.basename(file)}")
+                self.merge_pdfs(downloaded_files, chapter_dir)
 
-                    user_input = input("\n請輸入要合併的文件範圍 (eg. 1-3：合併1到3份文件，2-4,6-8：合併2到4及6到8兩段文件): ").strip()
-                    merge_indices = []
-
-                    if user_input:
-                        ranges = user_input.split(',')
-                        for r in ranges:
-                            r = r.strip()
-                            if '-' in r:
-                                parts = r.split('-')
-                                if len(parts) == 2:
-                                    try:
-                                        start = int(parts[0])
-                                        end = int(parts[1])
-                                        if start > end:
-                                            start, end = end, start  # 自動調整順序
-                                        for i in range(start, end+1):
-                                            if 1 <= i <= len(downloaded_files):
-                                                merge_indices.append(i-1)  # 轉換成 0-based index
-                                            else:
-                                                print(f"文件編號 {i} 超出範圍")
-                                    except ValueError:
-                                        print(f"無效的範圍: {r}")
-                            else:
-                                try:
-                                    num = int(r)
-                                    if 1 <= num <= len(downloaded_files):
-                                        merge_indices.append(num-1)
-                                    else:
-                                        print(f"文件編號 {num} 超出範圍")
-                                except ValueError:
-                                    print(f"無效的輸入: {r}")
-
-                    merge_indices = sorted(set(merge_indices))
-                    if merge_indices:
-                        merger = PdfMerger()
-                        for idx in merge_indices:
-                            merger.append(downloaded_files[idx])
-                        merged_file_path = os.path.join(chapter_dir, f"combined_{merge_count}.pdf")
-                        merger.write(merged_file_path)
-                        merger.close()
-                        print(f"\nPDF 文件已合併: {merged_file_path}")
-                        merge_count += 1
-                    else:
-                        print("\n沒有選擇到任何文件，合併取消。")
-
-                    cont = input("\n是否繼續合併下一份文件？(Y/N): ").strip().upper()
-                    if cont != 'Y':
-                        break
-
-            print("所有文件下載並合併完成！")
+            print("\n所有文件下載並合併完成！\n")
 
         except Exception as e:
             print(f"發生錯誤: {e}")
@@ -154,7 +157,7 @@ if __name__ == "__main__":
             f.writelines(
                 ["[Default]\n", "Account= your account\n", "Password= your password\n", "Classname= your classname\n", "Chapter= chapter title"]
             )
-            print("請在 accounts.ini 中輸入帳密")
+            print("\n首次登入請在 accounts.ini 中輸入帳密！\n")
             exit()
     # get account info fomr ini config file
     config = configparser.ConfigParser()
