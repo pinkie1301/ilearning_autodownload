@@ -124,7 +124,7 @@ class CourseBot:
 
                 if href and href.endswith(".pdf"):
                     # 檔案名稱設定
-                    filename = f"{index+1}_{pdf_name}.pdf"
+                    filename = f"{pdf_name}"
                     file_path = os.path.join(chapter_dir, filename)
 
                     # 下載 PDF 文件
