@@ -1,6 +1,7 @@
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.chrome.options import Options
 from PyPDF2 import PdfMerger
 import os
 import time
@@ -75,7 +76,9 @@ class CourseBot:
         os.makedirs(chapter_dir, exist_ok=True)
 
         # 啟動 Selenium WebDriver
-        driver = webdriver.Chrome()  # 確保已安裝對應版本的 ChromeDriver
+        edge_options = Options()
+        edge_options.add_argument("--headless")
+        driver = webdriver.Edge(options=edge_options)  # 確保已安裝對應版本的 ChromeDriver
 
         # 開啟目標網頁
         url = "https://i-learning.cycu.edu.tw/index.php"
