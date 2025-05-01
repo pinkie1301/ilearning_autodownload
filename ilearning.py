@@ -49,10 +49,17 @@ class CourseBot:
                         except ValueError:
                             print(f"無效的輸入: {r}")
 
-            merge_indices = sorted(set(merge_indices))
-            if merge_indices:
+            # 改成依照用戶輸入順序合併，同時移除重複項
+            seen = set()
+            unique_merge_indices = []
+            for idx in merge_indices:
+                if idx not in seen:
+                    seen.add(idx)
+                    unique_merge_indices.append(idx)
+
+            if unique_merge_indices:
                 merger = PdfMerger()
-                for idx in merge_indices:
+                for idx in unique_merge_indices:
                     merger.append(downloaded_files[idx])
                 merged_file_path = os.path.join(chapter_dir, f"combined_{merge_count}.pdf")
                 merger.write(merged_file_path)
@@ -65,6 +72,31 @@ class CourseBot:
             cont = input("\n是否繼續合併下一份文件？(Y/N): ").strip().upper()
             if cont != 'Y':
                 break
+
+    def merge_existing_folder(self):
+        current_dir = os.getcwd()
+        dirs = [d for d in os.listdir(current_dir) if os.path.isdir(os.path.join(current_dir, d))]
+        if not dirs:
+            print("當前資料夾中沒有子資料夾可供選擇")
+            return
+        print("可選擇的檔案夾:")
+        for idx, d in enumerate(dirs, start=1):
+            print(f"{idx}: {d}")
+        choice = input("請輸入檔案夾編號: ").strip()
+        try:
+            choice_idx = int(choice) - 1
+            if choice_idx < 0 or choice_idx >= len(dirs):
+                print("無效編號")
+                return
+        except ValueError:
+            print("無效輸入")
+            return
+        folder_path = os.path.join(current_dir, dirs[choice_idx])
+        pdf_files = [os.path.join(folder_path, f) for f in os.listdir(folder_path) if f.lower().endswith(".pdf")]
+        if not pdf_files:
+            print("該檔案夾內無 PDF 文件")
+            return
+        self.merge_pdfs(pdf_files, folder_path)
 
     def download(self, Account, Password, Classname, Chapter):
         # 設定下載目錄(預設為當前資料夾)
@@ -171,4 +203,11 @@ if __name__ == "__main__":
     Chapter = config["Default"]["Chapter"]
 
     courseBot = CourseBot()
-    courseBot.download(Account, Password, Classname, Chapter)
+    print("請選擇功能:")
+    print("1: 單純合併檔案 (從上一層資料夾選擇)")
+    print("2: 下載並合併檔案")
+    option = input("請輸入選項 (1/2): ").strip()
+    if option == "1":
+        courseBot.merge_existing_folder()
+    else:
+        courseBot.download(Account, Password, Classname, Chapter)
